@@ -1,5 +1,5 @@
 """
-FastAPI backend entry for TENISN — now with hardware probe and model endpoints.
+FastAPI backend entry for TENISN — now with hardware probe, model endpoints, and terminal endpoints.
 Run: python -m backend.main
 """
 from fastapi import FastAPI
@@ -19,8 +19,10 @@ app.add_middleware(
 
 # Import routers (kept local to avoid import cycles)
 from . import models  # noqa: E402
+from . import terminal  # noqa: E402
 
 app.include_router(models.router, prefix='/api')
+app.include_router(terminal.router, prefix='/api')
 
 
 @app.get('/')
