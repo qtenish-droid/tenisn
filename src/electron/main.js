@@ -1,11 +1,38 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { spawn } = require('child_process');
 const http = require('http');
 
 let mainWindow = null;
 let backendProcess = null;
 let backendReady = false;
+
+const userDataPath = app.getPath('userData');
+const settingsPath = path.join(userDataPath, 'settings.json');
+
+function loadSettings() {
+  try {
+    if (fs.existsSync(settingsPath)) {
+      const raw = fs.readFileSync(settingsPath, 'utf8');
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    console.error('Failed to load settings:', e);
+  }
+  return null;
+}
+
+function saveSettings(obj) {
+  try {
+    if (!fs.existsSync(userDataPath)) fs.mkdirSync(userDataPath, { recursive: true });
+    fs.writeFileSync(settingsPath, JSON.stringify(obj, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    console.error('Failed to save settings:', e);
+    return false;
+  }
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -138,8 +165,43 @@ function stopBackend() {
   backendReady = false;
 }
 
-app.whenReady().then(() => {
+async function performFirstRunProbeIfNeeded() {
+  const settings = loadSettings();
+  if (settings && settings.probe && settings.firstRunComplete) {
+    console.log('First-run probe already completed.');
+    return settings;
+  }
+
+  console.log('Performing first-run hardware probe...');
+  startBackend();
+  const ok = await pollBackendHealth(15, 1000);
+  if (!ok) {
+    console.warn('Backend not ready for probe. Saving minimal settings.');
+    const minimal = { firstRunComplete: false, probe: null };
+    saveSettings(minimal);
+    return minimal;
+  }
+
+  try {
+    const probe = await fetchJson('http://127.0.0.1:8001/api/hardware/probe', 8000);
+    const s = { firstRunComplete: true, probe: probe, updatedAt: new Date().toISOString() };
+    saveSettings(s);
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send('settings:updated', s);
+    }
+    return s;
+  } catch (e) {
+    console.error('Probe failed:', e);
+    const minimal = { firstRunComplete: false, probe: null };
+    saveSettings(minimal);
+    return minimal;
+  }
+}
+
+app.whenReady().then(async () => {
   createWindow();
+  // Start backend and perform probe if needed
+  await performFirstRunProbeIfNeeded();
   startBackend();
 
   app.on('activate', () => {
@@ -182,6 +244,29 @@ ipcMain.handle('backend:models:install', async (event, body) => {
   try {
     const res = await postJson('http://127.0.0.1:8001/api/models/install', body, 15000);
     return { ok: true, data: res };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+});
+
+// Settings IPC
+ipcMain.handle('settings:get', async () => {
+  return loadSettings();
+});
+
+ipcMain.handle('settings:rerunProbe', async () => {
+  // Force re-run probe
+  startBackend();
+  const ok = await pollBackendHealth(15, 1000);
+  if (!ok) return { ok: false, error: 'backend-not-ready' };
+  try {
+    const probe = await fetchJson('http://127.0.0.1:8001/api/hardware/probe', 8000);
+    const s = { firstRunComplete: true, probe: probe, updatedAt: new Date().toISOString() };
+    saveSettings(s);
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send('settings:updated', s);
+    }
+    return { ok: true, data: s };
   } catch (e) {
     return { ok: false, error: String(e) };
   }
