@@ -3,25 +3,35 @@
   <head>
     <meta charset="utf-8" />
     <title>TENISN</title>
-    <style>body{background:#0f0f10;color:#cfcfcf;font-family:Inter,Segoe UI,Arial;margin:0;padding:16px} button{background:#0f0f10;border:1px solid #1f1f1f;padding:8px 12px;color:#0fff8a;border-radius:6px;cursor:pointer} input{padding:6px;border-radius:6px;border:1px solid #222;background:#070707;color:#cfcfcf}</style>
+    <style>body{background:#0f0f10;color:#cfcfcf;font-family:Inter,Segoe UI,Arial;margin:0;padding:16px} button{background:#0f0f10;border:1px solid #1f1f1f;padding:8px 12px;color:#0fff8a;border-radius:6px;cursor:pointer} input{padding:6px;border-radius:6px;border:1px solid #222;background:#070707;color:#cfcfcf} .section{margin-top:12px;padding:12px;border-radius:6px;border:1px solid #1a1a1a;background:#070707}</style>
   </head>
   <body>
     <h1>TENISN</h1>
     <div id="status">Checking backend...</div>
-    <div style="margin-top:12px">
-      <button id="probeBtn">Probe Hardware</button>
+
+    <div class="section">
+      <strong>Hardware Probe</strong><br/>
+      <button id="probeBtn">Probe Now</button>
       <button id="recommendBtn" style="margin-left:8px">Recommend Models</button>
+      <button id="rerunProbeBtn" style="margin-left:8px">Re-run First-Run Probe</button>
+      <pre id="probeOut" style="margin-top:12px;white-space:pre-wrap;max-height:300px;overflow:auto;
+           background:#050505;padding:12px;border-radius:6px;border:1px solid #111"></pre>
     </div>
 
-    <div style="margin-top:12px">
+    <div class="section">
+      <strong>Models</strong><br/>
       <label>Install model: </label>
       <input id="modelName" placeholder="model-name" />
       <input id="modelSource" placeholder="source (ollama/hf/local)" style="margin-left:8px" />
       <button id="installBtn" style="margin-left:8px">Install</button>
+      <pre id="modelsOut" style="margin-top:12px;white-space:pre-wrap;max-height:200px;overflow:auto;background:#050505;padding:12px;border-radius:6px;border:1px solid #111"></pre>
     </div>
 
-    <pre id="probeOut" style="margin-top:12px;white-space:pre-wrap;max-height:300px;overflow:auto;background:#070707;padding:12px;border-radius:6px;border:1px solid #1a1a1a"></pre>
-    <pre id="modelsOut" style="margin-top:12px;white-space:pre-wrap;max-height:200px;overflow:auto;background:#070707;padding:12px;border-radius:6px;border:1px solid #1a1a1a"></pre>
+    <div class="section">
+      <strong>Saved Settings</strong>
+      <pre id="settingsOut" style="margin-top:8px;white-space:pre-wrap;max-height:200px;overflow:auto;background:#050505;padding:12px;border-radius:6px;border:1px solid #111"></pre>
+    </div>
+
     <script>
       async function check() {
         if (window.tenisn) {
@@ -30,6 +40,12 @@
         } else {
           document.getElementById('status').innerText = 'Preload API not available.';
         }
+      }
+
+      async function loadSettings() {
+        if (!window.tenisn) return;
+        const s = await window.tenisn.getSettings();
+        document.getElementById('settingsOut').innerText = s ? JSON.stringify(s, null, 2) : 'No settings yet.';
       }
 
       document.getElementById('probeBtn').addEventListener('click', async () => {
@@ -65,14 +81,26 @@
         }
       });
 
-      // Listen for backend health events from main
-      if (window.tenisn && window.tenisn.onBackendHealth) {
-        window.tenisn.onBackendHealth((st) => {
-          document.getElementById('status').innerText = 'Backend running: ' + (st.running? 'true':'false');
+      document.getElementById('rerunProbeBtn').addEventListener('click', async () => {
+        document.getElementById('probeOut').innerText = 'Re-running probe...';
+        const res = await window.tenisn.rerunProbe();
+        if (res.ok) {
+          document.getElementById('probeOut').innerText = JSON.stringify(res.data, null, 2);
+          loadSettings();
+        } else {
+          document.getElementById('probeOut').innerText = 'Re-run failed: ' + (res.error || JSON.stringify(res));
+        }
+      });
+
+      if (window.tenisn && window.tenisn.onSettingsUpdated) {
+        window.tenisn.onSettingsUpdated((s) => {
+          document.getElementById('settingsOut').innerText = JSON.stringify(s, null, 2);
         });
       }
 
+      // Initial load
       check();
+      loadSettings();
     </script>
   </body>
 </html>
