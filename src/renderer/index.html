@@ -3,20 +3,42 @@
   <head>
     <meta charset="utf-8" />
     <title>TENISN</title>
-    <style>body{background:#0f0f10;color:#cfcfcf;font-family:Inter,Segoe UI,Arial;margin:0;padding:16px}</style>
+    <style>body{background:#0f0f10;color:#cfcfcf;font-family:Inter,Segoe UI,Arial;margin:0;padding:16px} button{background:#0f0f10;border:1px solid #1f1f1f;padding:8px 12px;color:#0fff8a;border-radius:6px;cursor:pointer}</style>
   </head>
   <body>
     <h1>TENISN</h1>
     <div id="status">Checking backend...</div>
+    <div style="margin-top:12px">
+      <button id="probeBtn">Probe Hardware</button>
+    </div>
+    <pre id="probeOut" style="margin-top:12px;white-space:pre-wrap;max-height:400px;overflow:auto;background:#070707;padding:12px;border-radius:6px;border:1px solid #1a1a1a"></pre>
     <script>
       async function check() {
         if (window.tenisn) {
           const s = await window.tenisn.backendStatus();
-          document.getElementById('status').innerText = 'Backend running: ' + s.running;
+          document.getElementById('status').innerText = 'Backend running: ' + s.running + ' | ready: ' + s.ready;
         } else {
           document.getElementById('status').innerText = 'Preload API not available.';
         }
       }
+
+      document.getElementById('probeBtn').addEventListener('click', async () => {
+        document.getElementById('probeOut').innerText = 'Probing...';
+        const res = await window.tenisn.probeHardware();
+        if (res.ok) {
+          document.getElementById('probeOut').innerText = JSON.stringify(res.data, null, 2);
+        } else {
+          document.getElementById('probeOut').innerText = 'Probe failed: ' + res.error;
+        }
+      });
+
+      // Listen for backend health events from main
+      if (window.tenisn && window.tenisn.onBackendHealth) {
+        window.tenisn.onBackendHealth((st) => {
+          document.getElementById('status').innerText = 'Backend running: ' + (st.running? 'true':'false');
+        });
+      }
+
       check();
     </script>
   </body>
