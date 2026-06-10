@@ -6,11 +6,37 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
-    "backend": "python -m backend.main"
+    "backend": "python -m backend.main",
+    "dist": "electron-builder --win nsis"
   },
   "author": "qtenish-droid",
   "license": "MIT",
+  "build": {
+    "appId": "com.tenisn.app",
+    "productName": "TENISN",
+    "files": [
+      "dist/**",
+      "src/**",
+      "backend/**",
+      "package.json",
+      "assets/**",
+      "scripts/**"
+    ],
+    "directories": {
+      "buildResources": "installer/assets",
+      "output": "dist"
+    },
+    "win": {
+      "target": ["nsis"],
+      "icon": "installer/assets/logo.ico"
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^5.3.0",
+    "electron-log": "^4.4.7"
+  },
   "devDependencies": {
-    "electron": "^26.0.0"
+    "electron": "^26.0.0",
+    "electron-builder": "^24.6.0"
   }
 }
