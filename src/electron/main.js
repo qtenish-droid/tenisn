@@ -68,6 +68,38 @@ function fetchJson(url, timeout = 3000) {
   });
 }
 
+function postJson(url, bodyObj, timeout = 5000) {
+  return new Promise((resolve, reject) => {
+    try {
+      const parsed = new URL(url);
+      const data = JSON.stringify(bodyObj);
+      const options = {
+        hostname: parsed.hostname,
+        port: parsed.port,
+        path: parsed.pathname + (parsed.search || ''),
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(data)
+        }
+      };
+      const req = http.request(options, (res) => {
+        let resp = '';
+        res.on('data', chunk => resp += chunk);
+        res.on('end', () => {
+          try { resolve(JSON.parse(resp)); } catch (e) { reject(e); }
+        });
+      });
+      req.on('error', reject);
+      req.setTimeout(timeout, () => { req.abort(); reject(new Error('timeout')); });
+      req.write(data);
+      req.end();
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
 async function pollBackendHealth(retries = 10, intervalMs = 800) {
   const url = 'http://127.0.0.1:8001/';
   for (let i = 0; i < retries; i++) {
@@ -129,6 +161,26 @@ ipcMain.handle('backend:status', async () => {
 ipcMain.handle('backend:probe', async () => {
   try {
     const res = await fetchJson('http://127.0.0.1:8001/api/hardware/probe', 5000);
+    return { ok: true, data: res };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+});
+
+// IPC: model recommendations
+ipcMain.handle('backend:models:recommend', async () => {
+  try {
+    const res = await fetchJson('http://127.0.0.1:8001/api/models/recommend', 5000);
+    return { ok: true, data: res };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+});
+
+// IPC: install model (POST)
+ipcMain.handle('backend:models:install', async (event, body) => {
+  try {
+    const res = await postJson('http://127.0.0.1:8001/api/models/install', body, 15000);
     return { ok: true, data: res };
   } catch (e) {
     return { ok: false, error: String(e) };
