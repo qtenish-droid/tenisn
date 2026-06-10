@@ -1,20 +1,32 @@
 """
-Simple FastAPI backend skeleton for TENISN.
-Run with: python -m backend.main
+FastAPI backend entry for TENISN — now with hardware probe and model endpoints.
+Run: python -m backend.main
 """
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-app = FastAPI()
+app = FastAPI(title='TENISN Local Backend')
 
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
+# Allow Electron (running locally) to call this service
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['http://localhost', 'http://127.0.0.1'],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
 
-@app.get("/models/list")
-async def list_models():
-    # Placeholder: return installed local models
-    return {"models": []}
+# Import routers (kept local to avoid import cycles)
+from . import models  # noqa: E402
 
-if __name__ == "__main__":
-    uvicorn.run("backend.main:app", host="127.0.0.1", port=8001, log_level="info")
+app.include_router(models.router, prefix='/api')
+
+
+@app.get('/')
+async def root():
+    return {'service': 'tenisn-backend', 'status': 'ok'}
+
+
+if __name__ == '__main__':
+    uvicorn.run('backend.main:app', host='127.0.0.1', port=8001, log_level='info')
