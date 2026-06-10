@@ -3,15 +3,25 @@
   <head>
     <meta charset="utf-8" />
     <title>TENISN</title>
-    <style>body{background:#0f0f10;color:#cfcfcf;font-family:Inter,Segoe UI,Arial;margin:0;padding:16px} button{background:#0f0f10;border:1px solid #1f1f1f;padding:8px 12px;color:#0fff8a;border-radius:6px;cursor:pointer}</style>
+    <style>body{background:#0f0f10;color:#cfcfcf;font-family:Inter,Segoe UI,Arial;margin:0;padding:16px} button{background:#0f0f10;border:1px solid #1f1f1f;padding:8px 12px;color:#0fff8a;border-radius:6px;cursor:pointer} input{padding:6px;border-radius:6px;border:1px solid #222;background:#070707;color:#cfcfcf}</style>
   </head>
   <body>
     <h1>TENISN</h1>
     <div id="status">Checking backend...</div>
     <div style="margin-top:12px">
       <button id="probeBtn">Probe Hardware</button>
+      <button id="recommendBtn" style="margin-left:8px">Recommend Models</button>
     </div>
-    <pre id="probeOut" style="margin-top:12px;white-space:pre-wrap;max-height:400px;overflow:auto;background:#070707;padding:12px;border-radius:6px;border:1px solid #1a1a1a"></pre>
+
+    <div style="margin-top:12px">
+      <label>Install model: </label>
+      <input id="modelName" placeholder="model-name" />
+      <input id="modelSource" placeholder="source (ollama/hf/local)" style="margin-left:8px" />
+      <button id="installBtn" style="margin-left:8px">Install</button>
+    </div>
+
+    <pre id="probeOut" style="margin-top:12px;white-space:pre-wrap;max-height:300px;overflow:auto;background:#070707;padding:12px;border-radius:6px;border:1px solid #1a1a1a"></pre>
+    <pre id="modelsOut" style="margin-top:12px;white-space:pre-wrap;max-height:200px;overflow:auto;background:#070707;padding:12px;border-radius:6px;border:1px solid #1a1a1a"></pre>
     <script>
       async function check() {
         if (window.tenisn) {
@@ -29,6 +39,29 @@
           document.getElementById('probeOut').innerText = JSON.stringify(res.data, null, 2);
         } else {
           document.getElementById('probeOut').innerText = 'Probe failed: ' + res.error;
+        }
+      });
+
+      document.getElementById('recommendBtn').addEventListener('click', async () => {
+        document.getElementById('modelsOut').innerText = 'Fetching recommendations...';
+        const res = await window.tenisn.modelsRecommend();
+        if (res.ok) {
+          document.getElementById('modelsOut').innerText = JSON.stringify(res.data, null, 2);
+        } else {
+          document.getElementById('modelsOut').innerText = 'Recommend failed: ' + res.error;
+        }
+      });
+
+      document.getElementById('installBtn').addEventListener('click', async () => {
+        const name = document.getElementById('modelName').value.trim();
+        const source = document.getElementById('modelSource').value.trim() || 'auto';
+        if (!name) { alert('Enter model name'); return; }
+        document.getElementById('modelsOut').innerText = 'Installing ' + name + '...';
+        const res = await window.tenisn.modelsInstall(name, source);
+        if (res.ok) {
+          document.getElementById('modelsOut').innerText = JSON.stringify(res.data, null, 2);
+        } else {
+          document.getElementById('modelsOut').innerText = 'Install failed: ' + res.error;
         }
       });
 
