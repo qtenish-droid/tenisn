@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>TENISN</title>
+    <style>body{background:#0f0f10;color:#cfcfcf;font-family:Inter,Segoe UI,Arial;margin:0;padding:16px}</style>
+  </head>
+  <body>
+    <h1>TENISN</h1>
+    <div id="status">Checking backend...</div>
+    <script>
+      async function check() {
+        if (window.tenisn) {
+          const s = await window.tenisn.backendStatus();
+          document.getElementById('status').innerText = 'Backend running: ' + s.running;
+        } else {
+          document.getElementById('status').innerText = 'Preload API not available.';
+        }
+      }
+      check();
+    </script>
+  </body>
+</html>

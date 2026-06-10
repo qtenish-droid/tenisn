@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#00ff8a" />
+      <stop offset="1" stop-color="#00d27a" />
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="200" fill="#0b0b0c" />
+  <g transform="translate(128,128)">
+    <circle cx="384" cy="256" r="224" fill="none" stroke="url(#g)" stroke-width="40" stroke-linecap="round" />
+    <path d="M240 448 L528 64" stroke="#00ff8a" stroke-width="40" stroke-linecap="round" stroke-linejoin="round" />
+    <text x="384" y="560" font-family="Segoe UI,Arial" font-size="220" fill="url(#g)" font-weight="700" text-anchor="middle">T</text>
+  </g>
+</svg>
